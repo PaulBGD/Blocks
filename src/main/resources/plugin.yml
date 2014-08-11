@@ -1,0 +1,4 @@
+name: Blocks
+version: 1
+author: PaulBGD
+main: me.paulbgd.blocks.plugin.BlocksPlugin
