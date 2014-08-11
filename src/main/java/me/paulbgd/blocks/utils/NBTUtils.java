@@ -24,38 +24,17 @@
 
 package me.paulbgd.blocks.utils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.server.v1_7_R3.NBTBase;
-import net.minecraft.server.v1_7_R3.NBTCompressedStreamTools;
-import net.minecraft.server.v1_7_R3.NBTTagByte;
-import net.minecraft.server.v1_7_R3.NBTTagByteArray;
-import net.minecraft.server.v1_7_R3.NBTTagCompound;
-import net.minecraft.server.v1_7_R3.NBTTagDouble;
-import net.minecraft.server.v1_7_R3.NBTTagFloat;
-import net.minecraft.server.v1_7_R3.NBTTagInt;
-import net.minecraft.server.v1_7_R3.NBTTagIntArray;
-import net.minecraft.server.v1_7_R3.NBTTagList;
-import net.minecraft.server.v1_7_R3.NBTTagLong;
-import net.minecraft.server.v1_7_R3.NBTTagShort;
-import net.minecraft.server.v1_7_R3.NBTTagString;
-import net.minecraft.server.v1_7_R3.TileEntity;
-import net.minecraft.server.v1_7_R3.World;
+import me.paulbgd.blocks.utils.reflection.BlocksReflection;
+import me.paulbgd.blocks.utils.reflection.Reflection;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
-import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.v1_7_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_7_R3.inventory.CraftItemStack;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.jnbt.ByteArrayTag;
 import org.jnbt.ByteTag;
 import org.jnbt.CompoundTag;
@@ -66,118 +45,25 @@ import org.jnbt.IntArrayTag;
 import org.jnbt.IntTag;
 import org.jnbt.ListTag;
 import org.jnbt.LongTag;
-import org.jnbt.NBTInputStream;
-import org.jnbt.NBTOutputStream;
 import org.jnbt.ShortTag;
 import org.jnbt.StringTag;
 import org.jnbt.Tag;
 
 public class NBTUtils {
 
-    private final static Field tagListField;
+    public static Reflection.ReflectionObject newToOld(Tag compoundTag) throws IOException {
+        return loadJSONFromOld(loadJSON(compoundTag));
+    }
 
-    static {
-        Field tagListField1;
-        try {
-            tagListField1 = NBTTagList.class.getDeclaredField("list");
-            if (!tagListField1.isAccessible()) {
-                tagListField1.setAccessible(true);
-            }
-        } catch (NoSuchFieldException e) {
-            tagListField1 = null;
-            e.printStackTrace();
+    public static Tag oldToNew(Object nbtTagCompound) throws IOException {
+        Object loaded = load(new Reflection.ReflectionObject(nbtTagCompound));
+        if (loaded instanceof String) {
+            throw new IllegalArgumentException("Loaded string '" + loaded + "' instead of json!");
         }
-        tagListField = tagListField1;
-    }
-
-    // inventory specific
-    public static JSONObject inventoryToJSON(Inventory inventory) {
-        JSONObject json = new JSONObject();
-        JSONObject items = new JSONObject();
-
-        ItemStack[] contents = inventory.getContents();
-        for (int i = 0, contentsLength = contents.length; i < contentsLength; i++) {
-            ItemStack item = contents[i];
-            if (item == null) {
-                continue;
-            }
-            items.put(Integer.toString(i), itemToJSON(item)); // let's convert to JSON!
-        }
-        json.put("items", items);
-        return json;
-    }
-
-    public static void jsonToInventory(Inventory inventory, JSONObject json) {
-        if (!json.containsKey("items")) {
-            return;
-        }
-        JSONObject items = (JSONObject) json.get("items");
-        ItemStack[] itemStacks = new ItemStack[inventory.getSize()];
-        for (Map.Entry<String, Object> entry : items.entrySet()) {
-            int i = Integer.valueOf(entry.getKey());
-            JSONObject jsonObject = (JSONObject) entry.getValue();
-            itemStacks[i] = jsonToItem(jsonObject);
-        }
-        inventory.setContents(itemStacks); // instead of setting one at a time, this is faster
-    }
-
-    // block specific
-    public static JSONObject blockToJSON(Block block) {
-        World world = ((CraftWorld) block.getWorld()).getHandle();
-        TileEntity tileEntity = world.getTileEntity(block.getX(), block.getY(), block.getZ());
-        JSONObject jsonObject = new JSONObject();
-        if (tileEntity == null) {
-            return jsonObject;
-        }
-        NBTTagCompound nbtTagCompound = new NBTTagCompound();
-        tileEntity.b(nbtTagCompound);
-        return nbtToJSON(nbtTagCompound);
-    }
-
-    public static void jsonToBlock(Block block, JSONObject jsonObject) {
-        NBTTagCompound nbtTagCompound = jsonToNBT(jsonObject);
-        nbtTagCompound.setInt("x", block.getX());
-        nbtTagCompound.setInt("y", block.getY());
-        nbtTagCompound.setInt("z", block.getZ());
-        World world = ((CraftWorld) block.getWorld()).getHandle();
-        TileEntity tileEntity = world.getTileEntity(block.getX(), block.getY(), block.getZ());
-        tileEntity.a(nbtTagCompound);
-        world.setTileEntity(block.getX(), block.getY(), block.getZ(), tileEntity);
-    }
-
-    // item specific
-    public static JSONObject itemToJSON(ItemStack item) {
-        net.minecraft.server.v1_7_R3.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
-        NBTTagCompound nbt = nmsItem.save(new NBTTagCompound());
-        return nbtToJSON(nbt);
-    }
-
-    public static ItemStack jsonToItem(JSONObject jsonObject) {
-        NBTTagCompound nbt = jsonToNBT(jsonObject);
-        net.minecraft.server.v1_7_R3.ItemStack itemStack = net.minecraft.server.v1_7_R3.ItemStack.createStack(nbt);
-
-        return CraftItemStack.asBukkitCopy(itemStack);
-    }
-
-    public static NBTTagCompound newToOld(Tag compoundTag) throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        NBTOutputStream nbtOutputStream = new NBTOutputStream(byteArrayOutputStream);
-        nbtOutputStream.writeTag(compoundTag);
-        nbtOutputStream.close();
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-        NBTTagCompound nbtTagCompound = NBTCompressedStreamTools.a(byteArrayInputStream);
-        byteArrayInputStream.close();
-        return nbtTagCompound;
-    }
-
-    public static Tag oldToNew(NBTTagCompound nbtTagCompound) throws IOException {
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(NBTCompressedStreamTools.a(nbtTagCompound));
-        NBTInputStream nbtInputStream = new NBTInputStream(byteArrayInputStream);
-        return nbtInputStream.readTag();
-    }
-
-    public static NBTTagCompound jsonToNBT(JSONObject jsonObject) {
-        return (NBTTagCompound) loadJSON(jsonObject);
+        System.out.println("Loaded JSON: " + loaded.toString());
+        Tag tag = jsonToNewNBT((JSONObject) loaded);
+        System.out.println("Tag: " + tag.toString());
+        return tag;
     }
 
     public static CompoundTag jsonToNewNBT(JSONObject jsonObject) {
@@ -191,7 +77,37 @@ public class NBTUtils {
             JSONObject jsonObject = (JSONObject) object;
             HashMap<String, Tag> tagHashMap = new HashMap<>();
             for (Map.Entry<String, Object> entry : jsonObject.entrySet()) {
-                tagHashMap.put(name, loadNBT(entry.getKey(), entry.getValue()));
+                if(entry.getKey().equals("nbtTagList")) {
+                    System.out.println("It's a tag list!");
+                    JSONArray jsonArray = (JSONArray) entry.getValue();
+                    List<Tag> tagList = new ArrayList<>();
+                    for (Object o : jsonArray) {
+                        tagList.add(loadNBT("", o));
+                    }
+                    return new ListTag(name, Tag.class, tagList);
+                } else if(entry.getKey().equals("nbtTagByteArray")) {
+                    System.out.println("It's a byte list!");
+                    JSONArray jsonArray = (JSONArray) entry.getValue();
+                    byte[] bytes = new byte[jsonArray.size()];
+                    for (int i = 0, jsonArraySize = jsonArray.size(); i < jsonArraySize; i++) {
+                        Object o = jsonArray.get(i);
+                        bytes[i] = (byte) o;
+                    }
+                    return new ByteArrayTag(name, bytes);
+                } else if(entry.getKey().equals("nbtTagInArray")) {
+                    System.out.println("It's a int list!");
+                    JSONArray jsonArray = (JSONArray) entry.getValue();
+                    int[] ints = new int[jsonArray.size()];
+                    for (int i = 0, jsonArraySize = jsonArray.size(); i < jsonArraySize; i++) {
+                        Object o = jsonArray.get(i);
+                        ints[i] = (int) o;
+                    }
+                    return new IntArrayTag(name, ints);
+                } else {
+                    Tag put = loadNBT(entry.getKey(), entry.getValue());
+                    System.out.println("Loaded tag of type " + put.getClass().getSimpleName());
+                    tagHashMap.put(entry.getKey(), put);
+                }
             }
             return new CompoundTag(name, tagHashMap);
         } else if (object instanceof Double) {
@@ -274,127 +190,102 @@ public class NBTUtils {
         }
     }
 
-    public static JSONObject nbtToJSON(NBTTagCompound nbt) {
-        return (JSONObject) load(nbt);
-    }
-
-    private static NBTBase loadJSON(Object json) {
+    private static Reflection.ReflectionObject loadJSONFromOld(Object json) {
         if (json instanceof JSONObject) {
             JSONObject jsonObject = (JSONObject) json;
             if (jsonObject.containsKey("nbtTagList")) {
-                // load array
                 JSONArray jsonArray = (JSONArray) jsonObject.get("nbtTagList");
-                NBTTagList nbtTagList = new NBTTagList();
+                Reflection.ReflectionObject reflectionObject = new Reflection.ReflectionObject(Reflection.getClass("NBTTagList", Reflection.PackageType.NMS).newInstance());
                 for (Object object : jsonArray) {
-                    nbtTagList.add(loadJSON(object));
+                    reflectionObject.getMethod("add", null, 1).invoke(loadJSONFromOld(object).getObject());
                 }
-                return nbtTagList;
+                return reflectionObject;
             } else if (jsonObject.containsKey("nbtTagIntArray")) {
                 JSONArray jsonArray = (JSONArray) jsonObject.get("nbtTagIntArray");
                 int[] ints = new int[jsonArray.size()];
                 for (int i = 0; i < ints.length; i++) {
                     ints[i] = (Integer) jsonArray.get(i);
                 }
-                return new NBTTagIntArray(ints);
+
+                return new Reflection.ReflectionObject(Reflection.getClass("NBTTagIntArray", Reflection.PackageType.NMS).newInstance(new Object[]{ints}));
             } else if (jsonObject.containsKey("nbtTagByteArray")) {
                 JSONArray jsonArray = (JSONArray) jsonObject.get("nbtTagByteArray");
                 byte[] ints = new byte[jsonArray.size()];
                 for (int i = 0; i < ints.length; i++) {
                     ints[i] = (Byte) jsonArray.get(i);
                 }
-                return new NBTTagByteArray(ints);
+                return new Reflection.ReflectionObject(Reflection.getClass("NBTTagByteArray", Reflection.PackageType.NMS).newInstance(new Object[]{ints}));
             } else {
-                // well, it's not an array/list
-                NBTTagCompound nbt = new NBTTagCompound();
+                Reflection.ReflectionObject nbt = new Reflection.ReflectionObject(BlocksReflection.getNbtTagCompound().newInstance());
                 for (Map.Entry<String, Object> entry : jsonObject.entrySet()) {
-                    nbt.set(entry.getKey(), loadJSON(entry.getValue()));
+                    nbt.getMethod("set", null, 2).invoke(entry.getKey(), loadJSONFromOld(entry.getValue()).getObject());
                 }
                 return nbt;
             }
         } else if (json instanceof String) {
-            return new NBTTagString((String) json);
+            return new Reflection.ReflectionObject(Reflection.getClass("NBTTagString", Reflection.PackageType.NMS).newInstance(json));
         } else if (json instanceof Double) {
-            return new NBTTagDouble((Double) json);
+            return new Reflection.ReflectionObject(Reflection.getClass("NBTTagDouble", Reflection.PackageType.NMS).newInstance(json));
         } else if (json instanceof Float) {
-            return new NBTTagFloat((Float) json);
+            return new Reflection.ReflectionObject(Reflection.getClass("NBTTagFloat", Reflection.PackageType.NMS).newInstance(json));
         } else if (json instanceof Long) {
-            return new NBTTagLong((Long) json);
+            return new Reflection.ReflectionObject(Reflection.getClass("NBTTagLong", Reflection.PackageType.NMS).newInstance(json));
         } else if (json instanceof Integer) {
-            return new NBTTagInt((Integer) json);
+            return new Reflection.ReflectionObject(Reflection.getClass("NBTTagInt", Reflection.PackageType.NMS).newInstance((int) json));
         } else if (json instanceof Short) {
-            return new NBTTagShort((Short) json);
+            return new Reflection.ReflectionObject(Reflection.getClass("NBTTagShort", Reflection.PackageType.NMS).newInstance(json));
         } else if (json instanceof Byte) {
-            return new NBTTagByte((Byte) json);
+            return new Reflection.ReflectionObject(Reflection.getClass("NBTTagByte", Reflection.PackageType.NMS).newInstance(json));
         } else {
-            return new NBTTagString(json.toString());
+            return new Reflection.ReflectionObject(Reflection.getClass("NBTTagString", Reflection.PackageType.NMS).newInstance(json.toString()));
         }
     }
 
-    private static Object load(NBTBase nbt) {
-        if (nbt instanceof NBTTagList) {
-            NBTTagList nbtList = (NBTTagList) nbt;
+    private static Object load(Reflection.ReflectionObject nbt) {
+        if (nbt.getName().equals("NBTTagList")) {
             JSONObject jsonObject = new JSONObject();
             JSONArray jsonArray = new JSONArray();
-            if (tagListField != null) {
-                try {
-                    List<?> baseList = (List<?>) tagListField.get(nbtList);
-                    for (Object base : baseList) {
-                        jsonArray.add(load((NBTBase) base));
-                    }
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
+            List<?> baseList = (List<?>) nbt.getField(0, List.class).getValue();
+            for (Object base : baseList) {
+                jsonArray.add(load(new Reflection.ReflectionObject(base)));
             }
             jsonObject.put("nbtTagList", jsonArray);
             return jsonObject;
-        } else if (nbt instanceof NBTTagCompound) {
-            NBTTagCompound nbtTagCompound = (NBTTagCompound) nbt;
+        } else if (nbt.getName().equals("NBTTagCompound")) {
             JSONObject jsonObject = new JSONObject();
-            Set keys = nbtTagCompound.c();
+            Set keys = (Set) nbt.getMethod("c", Set.class).invoke();
             for (Object key : keys) {
-                jsonObject.put((String) key, load(nbtTagCompound.get((String) key)));
+                jsonObject.put((String) key, load(new Reflection.ReflectionObject(nbt.getMethod("get", Reflection.getClass("NBTBase", Reflection.PackageType.NMS).getAClass()).invoke(key))));
             }
             return jsonObject;
-        } else if (nbt instanceof NBTTagIntArray) {
+        } else if (nbt.getName().equals("NBTTagIntArray")) {
             JSONArray jsonArray = new JSONArray();
-            NBTTagIntArray nbtTagIntArray = (NBTTagIntArray) nbt;
-            jsonArray.addAll(Arrays.asList(nbtTagIntArray.c()));
-
+            jsonArray.addAll(Arrays.asList((int[]) nbt.getMethod("c", int[].class).invoke()));
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("nbtTagIntArray", jsonArray);
             return jsonObject;
-        } else if (nbt instanceof NBTTagByteArray) {
+        } else if (nbt.getName().equals("NBTTagByteArray")) {
             JSONArray jsonArray = new JSONArray();
-            NBTTagByteArray nbtTagByteArray = (NBTTagByteArray) nbt;
-            jsonArray.addAll(Arrays.asList(nbtTagByteArray.c()));
-
+            jsonArray.addAll(Arrays.asList((byte[]) nbt.getMethod("c", byte[].class).invoke()));
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("nbtTagByteArray", jsonArray);
             return jsonObject;
-        } else if (nbt instanceof NBTTagString) {
-            NBTTagString nbtTagString = (NBTTagString) nbt;
-            return nbtTagString.a_();
-        } else if (nbt instanceof NBTTagDouble) {
-            NBTTagDouble nbtTagDouble = (NBTTagDouble) nbt;
-            return nbtTagDouble.g();
-        } else if (nbt instanceof NBTTagFloat) {
-            NBTTagFloat nbtTagFloat = (NBTTagFloat) nbt;
-            return nbtTagFloat.h();
-        } else if (nbt instanceof NBTTagLong) {
-            NBTTagLong nbtTagLong = (NBTTagLong) nbt;
-            return nbtTagLong.c();
-        } else if (nbt instanceof NBTTagInt) {
-            NBTTagInt nbtTagInt = (NBTTagInt) nbt;
-            return nbtTagInt.d();
-        } else if (nbt instanceof NBTTagShort) {
-            NBTTagShort nbtTagShort = (NBTTagShort) nbt;
-            return nbtTagShort.e();
-        } else if (nbt instanceof NBTTagByte) {
-            NBTTagByte nbtTagByte = (NBTTagByte) nbt;
-            return nbtTagByte.f();
+        } else if (nbt.getName().equals("NBTTagString")) {
+            return nbt.getMethod("a_", String.class).invoke();
+        } else if (nbt.getName().equals("NBTTagDouble")) {
+            return nbt.getMethod("g", double.class).invoke();
+        } else if (nbt.getName().equals("NBTTagFloat")) {
+            return nbt.getMethod("h", float.class).invoke();
+        } else if (nbt.getName().equals("NBTTagLong")) {
+            return nbt.getMethod("c", long.class).invoke();
+        } else if (nbt.getName().equals("NBTTagInt")) {
+            return nbt.getMethod("d", int.class).invoke();
+        } else if (nbt.getName().equals("NBTTagShort")) {
+            return nbt.getMethod("e", short.class).invoke();
+        } else if (nbt.getName().equals("NBTTagByte")) {
+            return nbt.getMethod("f", byte.class).invoke();
         } else {
-            // wat
-            return nbt.toString();
+            return nbt.getName();
         }
     }
 

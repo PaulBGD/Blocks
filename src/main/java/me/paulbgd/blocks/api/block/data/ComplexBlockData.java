@@ -24,12 +24,12 @@
 
 package me.paulbgd.blocks.api.block.data;
 
+import java.io.IOException;
 import java.util.HashMap;
 import me.paulbgd.blocks.utils.NBTUtils;
-import net.minecraft.server.v1_7_R3.NBTTagCompound;
-import net.minecraft.server.v1_7_R3.TileEntity;
+import me.paulbgd.blocks.utils.reflection.BlocksReflection;
+import me.paulbgd.blocks.utils.reflection.Reflection;
 import net.minidev.json.JSONObject;
-import org.bukkit.craftbukkit.v1_7_R3.util.CraftMagicNumbers;
 import org.jnbt.CompoundTag;
 import org.jnbt.Tag;
 
@@ -50,7 +50,7 @@ public class ComplexBlockData extends BlockData {
     public ComplexBlockData(int id, JSONObject data) {
         super(id, Short.valueOf((String) data.get("e")));
         this.data = data;
-
+        System.out.println("Loaded complex data " + data);
         this.nbt = data.containsKey("n") ? NBTUtils.jsonToNewNBT((JSONObject) data.get("n")) : new CompoundTag("", new HashMap<String, Tag>());
     }
 
@@ -61,14 +61,20 @@ public class ComplexBlockData extends BlockData {
      * @param tileEntity the TileEntity
      * @param data       block data
      */
-    public ComplexBlockData(TileEntity tileEntity, int data) {
-        super(CraftMagicNumbers.getId(tileEntity.q()), (short) data);
+    public ComplexBlockData(Object tileEntity, int data) {
+        super(BlocksReflection.getId(Reflection.getClass("TileEntity", Reflection.PackageType.NMS).getMethod(0, BlocksReflection.getNmsBlock(), tileEntity).invoke()), (short) data);
         this.data = new JSONObject();
         this.data.put("e", Short.toString(this.blockData));
 
-        NBTTagCompound nbtTagCompound = new NBTTagCompound();
-        tileEntity.b(nbtTagCompound);
-        JSONObject nbtData = NBTUtils.nbtToJSON(nbtTagCompound);
+        Object nbtTagCompound = BlocksReflection.getNbtTagCompound().newInstance();
+        new Reflection.ReflectionClass(BlocksReflection.getTileEntityClass()).getDirectMethod(3, null, tileEntity).invoke(nbtTagCompound);
+        JSONObject nbtData = null;
+        try {
+            nbtData = NBTUtils.nbtToJSON((CompoundTag) NBTUtils.oldToNew(nbtTagCompound));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("NBT data: " + nbtData.toJSONString());
         this.nbt = NBTUtils.jsonToNewNBT(nbtData);
         this.data.put("n", nbtData);
     }

@@ -1,0 +1,9 @@
+<component name="CopyrightManager">
+  <copyright>
+    <option name="notice" value="COPYRIGHT AND PERMISSION NOTICE&#10;&#10;Copyright (c) 2014, PaulBGD, &lt;paul@paulbgd.me&gt;.&#10; &#10;All rights reserved.&#10; &#10;Permission to use, copy, modify, and distribute this software for any purpose&#10;with or without fee is hereby granted, provided that the above copyright&#10;notice and this permission notice appear in all copies.&#10; &#10;THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR&#10;IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,&#10;FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS. IN&#10;NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,&#10;DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR&#10;OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE&#10;OR OTHER DEALINGS IN THE SOFTWARE.&#10; &#10;Except as contained in this notice, the name of a copyright holder shall not&#10;be used in advertising or otherwise to promote the sale, use or other dealings&#10;in this Software without prior written authorization of the copyright holder." />
+    <option name="keyword" value="Copyright" />
+    <option name="allowReplaceKeyword" value="" />
+    <option name="myName" value="MIT" />
+    <option name="myLocal" value="true" />
+  </copyright>
+</component>

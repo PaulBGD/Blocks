@@ -32,7 +32,6 @@ import java.util.List;
 import lombok.Getter;
 import me.paulbgd.blocks.BlocksLanguage;
 import me.paulbgd.blocks.plugin.BlocksPlugin;
-import me.paulbgd.blocks.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandMap;
@@ -118,13 +117,15 @@ public abstract class Command implements TabExecutor {
         }
         if (args.length > 0) {
             for (Subcommand subcommand : subcommands) {
-                if (Utils.arrayContains(subcommand.names, args[0].toLowerCase())) {
-                    if (sender.hasPermission(subcommand.permission)) {
-                        subcommand.onCommand(sender, args.length == 1 ? new String[0] : Arrays.copyOfRange(args, 1, args.length));
-                    } else {
-                        sendMessage(String.format("%s%s", ChatColor.RED, BlocksLanguage.NO_PERMISSION), sender);
+                for(String name : subcommand.names) {
+                    if(name.equalsIgnoreCase(args[0].toLowerCase())) {
+                        if (sender.hasPermission(subcommand.permission)) {
+                            subcommand.onCommand(sender, args.length == 1 ? new String[0] : Arrays.copyOfRange(args, 1, args.length));
+                        } else {
+                            sendMessage(String.format("%s%s", ChatColor.RED, BlocksLanguage.NO_PERMISSION), sender);
+                        }
+                        return true;
                     }
-                    return true;
                 }
             }
         }

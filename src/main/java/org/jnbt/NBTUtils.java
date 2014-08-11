@@ -49,7 +49,6 @@ public final class NBTUtils {
      * @return The type name.
      */
     public static String getTypeName(final Class<? extends Tag> clazz) {
-
         if (clazz.equals(ByteArrayTag.class)) {
             return "TAG_Byte_Array";
         } else if (clazz.equals(ByteTag.class)) {
@@ -74,6 +73,9 @@ public final class NBTUtils {
             return "TAG_Short";
         } else if (clazz.equals(StringTag.class)) {
             return "TAG_String";
+        } else if(clazz.equals(Tag.class)) {
+            System.out.println("Loaded tag?");
+            return getTypeName(StringTag.class);
         } else {
             throw new IllegalArgumentException("[JNBT] Invalid tag classs ("
                     + clazz.getName() + ").");
@@ -113,9 +115,11 @@ public final class NBTUtils {
             return NBTConstants.TYPE_SHORT;
         } else if (clazz.equals(StringTag.class)) {
             return NBTConstants.TYPE_STRING;
+        } else if(clazz.equals(Tag.class)) {
+            System.out.println("Invalid tag found!");
+            return NBTConstants.TYPE_STRING;
         } else {
-            throw new IllegalArgumentException("[JNBT] Invalid tag classs ("
-                    + clazz.getName() + ").");
+            throw new IllegalArgumentException("[JNBT] Invalid tag classs (" + clazz.getName() + ").");
         }
     }
 

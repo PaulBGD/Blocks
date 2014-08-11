@@ -25,10 +25,10 @@
 package me.paulbgd.blocks.api.block.data;
 
 import lombok.Data;
+import me.paulbgd.blocks.utils.reflection.BlocksReflection;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import org.bukkit.block.BlockState;
-import org.bukkit.craftbukkit.v1_7_R3.CraftWorld;
 
 /**
  * Represents the data a block can contain.
@@ -103,7 +103,7 @@ public abstract class BlockData {
             // normal data value, bleh
             return new SimpleBlockData(blockState);
         } else {
-            return new ComplexBlockData(((CraftWorld) blockState.getWorld()).getHandle().getTileEntity(blockState.getX(), blockState.getY(), blockState.getZ()), blockState.getRawData());
+            return new ComplexBlockData(BlocksReflection.getWorldHandle(blockState.getWorld()).getMethod(0, BlocksReflection.getTileEntityClass()).invoke(blockState.getX(), blockState.getY(), blockState.getZ()), blockState.getRawData());
         }
     }
 

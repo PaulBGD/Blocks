@@ -112,7 +112,6 @@ public class BlocksFormat implements BlocksLoader {
                 System.out.println("Invalid JSON: " + ioString);
                 continue;
             }
-            System.out.println(file.getValue() + "'s size: " + parse.size());
             for (Map.Entry<String, Object> entry : parse.entrySet()) {
                 if (file.getValue().equals("b")) {
                     // biome data!

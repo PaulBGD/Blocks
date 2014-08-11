@@ -24,22 +24,28 @@
 
 package me.paulbgd.blocks.utils;
 
+import com.google.common.base.Joiner;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import me.paulbgd.blocks.BlocksLanguage;
 import me.paulbgd.blocks.api.block.BlockPosition;
 import me.paulbgd.blocks.api.block.data.BlockData;
 import me.paulbgd.blocks.api.block.data.ComplexBlockData;
 import me.paulbgd.blocks.api.block.data.SimpleBlockData;
-import net.minecraft.server.v1_7_R3.Blocks;
-import net.minecraft.server.v1_7_R3.NBTTagCompound;
+import me.paulbgd.blocks.utils.reflection.BlocksReflection;
+import me.paulbgd.blocks.utils.reflection.Reflection;
 import net.minecraft.server.v1_7_R3.TileEntity;
+import net.minecraft.util.org.apache.commons.lang3.Validate;
 import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.v1_7_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_7_R3.util.CraftMagicNumbers;
+import org.jnbt.CompoundTag;
+import org.jnbt.IntTag;
+import org.jnbt.Tag;
 
 public class BlockUtils {
 
@@ -56,7 +62,7 @@ public class BlockUtils {
             throw new IllegalArgumentException(BlocksLanguage.DIFFERENT_WORLDS);
         }
         List<me.paulbgd.blocks.api.block.Block> blocks = new ArrayList<>();
-        net.minecraft.server.v1_7_R3.World world = ((CraftWorld) block1.getWorld()).getHandle();
+        Reflection.ReflectionObject nmsWorld = BlocksReflection.getWorldHandle(block1.getWorld());
         int maxHeight = block1.getWorld().getMaxHeight(), minY = lowestInteger(block1.getY(), block2.getY());
         if (minY > maxHeight) {
             return blocks;
@@ -72,11 +78,12 @@ public class BlockUtils {
                 for (int z = minZ; z <= maxZ; z++) {
                     BlockPosition blockPosition = new BlockPosition(x - from.getX(), y - from.getY(), z - from.getZ());
                     BlockData blockData;
-                    TileEntity tileEntity = world.getTileEntity(x, y, z);
-                    short data = (short) world.getData(x, y, z);
+                    Reflection.ReflectionClass world = new Reflection.ReflectionClass(BlocksReflection.getNmsWorld());
+                    Object tileEntity = world.getMethod("getTileEntity", BlocksReflection.getTileEntityClass(), nmsWorld.getObject()).invoke(x, y, z);
+                    short data = ((Integer) world.getMethod("getData", int.class, nmsWorld.getObject()).invoke(x, y, z)).shortValue();
                     if (tileEntity == null) {
                         // normal block I suppose
-                        blockData = new SimpleBlockData(CraftMagicNumbers.getId(world.getType(x, y, z)), data);
+                        blockData = new SimpleBlockData(BlocksReflection.getId(world.getMethod("getType", BlocksReflection.getNmsBlock(), 3, nmsWorld.getObject()).invoke(x, y, z)), data);
                     } else {
                         blockData = new ComplexBlockData(tileEntity, data);
                     }
@@ -95,9 +102,16 @@ public class BlockUtils {
      * @param air      if or if not to paste the air
      */
     public static void paste(Collection<me.paulbgd.blocks.api.block.Block> blocks, Block location, boolean air) {
-        CraftWorld craftWorld = ((CraftWorld) location.getWorld());
-        net.minecraft.server.v1_7_R3.World world = ((CraftWorld) location.getWorld()).getHandle();
+        World craftWorld = location.getWorld();
+        Object world = BlocksReflection.getWorldHandle(location.getWorld()).getObject();
+        Reflection.ReflectionClass worldClass = new Reflection.ReflectionClass(BlocksReflection.getNmsWorld());
         int x = location.getX(), y = location.getY(), z = location.getZ();
+        Reflection.ReflectionMethod getType = worldClass.getMethod("getType", BlocksReflection.getNmsBlock(), 3, world);
+        Reflection.ReflectionMethod getBlock = BlocksReflection.getCraftMagicNumbers().getStaticMethod("getBlock", BlocksReflection.getNmsBlock(), new Class<?>[]{int.class});
+        Reflection.ReflectionMethod setTypeAndData = worldClass.getMethod("setTypeAndData", boolean.class, 6, world);
+        Reflection.ReflectionMethod getTileEntity = worldClass.getMethod("getTileEntity", BlocksReflection.getTileEntityClass(), 3, world);
+        Reflection.ReflectionMethod setTileEntity = worldClass.getMethod("setTileEntity", null, 4, world);
+        Validate.noNullElements(new Object[]{getType, getBlock, setTypeAndData, getTileEntity, setTileEntity});
         for (me.paulbgd.blocks.api.block.Block block : blocks) {
             BlockPosition position = block.getPosition();
             BlockData data = block.getData();
@@ -106,25 +120,33 @@ public class BlockUtils {
             if (!chunk.isLoaded()) {
                 chunk.load(true);
             }
-            if (data.getId() == 0 && (!air || world.getType(j, k, l) == Blocks.AIR)) {
+            if (data.getId() == 0 && (!air || getType.invoke(j, k, l) == Reflection.getClass("Blocks", Reflection.PackageType.NMS).getStaticField("AIR").getValue())) {
                 continue; // no need to do air.. again
             }
             try {
-                net.minecraft.server.v1_7_R3.Block id = CraftMagicNumbers.getBlock(data.getId());
-                world.setTypeAndData(j, k, l, id, data.getBlockData(), 2); // 4 = no change
+                Object id = getBlock.invoke(data.getId());
+                setTypeAndData.invoke(j, k, l, id, (int) data.getBlockData(), 2);
                 if (data instanceof ComplexBlockData) {
-                    NBTTagCompound nbtTagCompound = NBTUtils.newToOld(((ComplexBlockData) data).getNBT());
-                    nbtTagCompound.setInt("x", j);
-                    nbtTagCompound.setInt("y", k);
-                    nbtTagCompound.setInt("z", l);
-                    TileEntity tileEntity = world.getTileEntity(j, k, l);
-                    tileEntity.a(nbtTagCompound);
-                    world.setTileEntity(j, k, l, tileEntity);
+                    ComplexBlockData complexBlockData = (ComplexBlockData) data;
+                    CompoundTag nbt = complexBlockData.getNBT();
+                    Map<String, Tag> value = new HashMap<>(nbt.getValue());
+                    value.put("x", new IntTag("x", j));
+                    value.put("y", new IntTag("y", k));
+                    value.put("z", new IntTag("z", l));
+                    CompoundTag newTag = new CompoundTag(nbt.getName(), value);
+                    Reflection.ReflectionObject nbtTagCompound = NBTUtils.newToOld(newTag);
+                    Reflection.ReflectionObject tileEntity = Reflection.getObject(getTileEntity.invoke(j, k, l));
+                    Reflection.ReflectionMethod method = tileEntity.getMethod("a", null, 1);
+                    System.out.println("Method: " + method.getMethod().getName());
+                    method.invoke(nbtTagCompound.getObject());
+                    setTileEntity.invoke(j, k, l, tileEntity.getObject());
+                    tileEntity.getMethod("update", null).invoke();
                 } else if (!(data instanceof SimpleBlockData)) {
                     throw new IllegalArgumentException(String.format(BlocksLanguage.INVALID_DATA_TYPE, data.getClass()));
                 }
             } catch (NullPointerException e) {
                 System.out.println("Invalid ID: " + data.getId());
+                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
