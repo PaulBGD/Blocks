@@ -113,7 +113,6 @@ public class BlockUtils {
                 net.minecraft.server.v1_7_R4.Block id = CraftMagicNumbers.getBlock(data.getId());
                 world.setTypeAndData(j, k, l, id, data.getBlockData(), 2); // 4 = no change
                 if (data instanceof ComplexBlockData) {
-                    System.out.println(((ComplexBlockData) data).getNBT());
                     NBTTagCompound nbtTagCompound = NBTUtils.newToOld(((ComplexBlockData) data).getNBT());
                     nbtTagCompound.setInt("x", j);
                     nbtTagCompound.setInt("y", k);
@@ -121,7 +120,6 @@ public class BlockUtils {
                     TileEntity tileEntity = world.getTileEntity(j, k, l);
                     tileEntity.a(nbtTagCompound);
                     world.setTileEntity(j, k, l, tileEntity);
-                    System.out.println("Tile entity set with data " + nbtTagCompound);
                 } else if (!(data instanceof SimpleBlockData)) {
                     throw new IllegalArgumentException(String.format(BlocksLanguage.INVALID_DATA_TYPE, data.getClass()));
                 }
