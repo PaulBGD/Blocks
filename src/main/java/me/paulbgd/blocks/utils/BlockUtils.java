@@ -33,13 +33,13 @@ import me.paulbgd.blocks.api.block.BlockPosition;
 import me.paulbgd.blocks.api.block.data.BlockData;
 import me.paulbgd.blocks.api.block.data.ComplexBlockData;
 import me.paulbgd.blocks.api.block.data.SimpleBlockData;
-import net.minecraft.server.v1_7_R3.Blocks;
-import net.minecraft.server.v1_7_R3.NBTTagCompound;
-import net.minecraft.server.v1_7_R3.TileEntity;
+import net.minecraft.server.v1_7_R4.Blocks;
+import net.minecraft.server.v1_7_R4.NBTTagCompound;
+import net.minecraft.server.v1_7_R4.TileEntity;
 import org.bukkit.Chunk;
 import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.v1_7_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_7_R3.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.v1_7_R4.CraftWorld;
+import org.bukkit.craftbukkit.v1_7_R4.util.CraftMagicNumbers;
 
 public class BlockUtils {
 
@@ -56,7 +56,7 @@ public class BlockUtils {
             throw new IllegalArgumentException(BlocksLanguage.DIFFERENT_WORLDS);
         }
         List<me.paulbgd.blocks.api.block.Block> blocks = new ArrayList<>();
-        net.minecraft.server.v1_7_R3.World world = ((CraftWorld) block1.getWorld()).getHandle();
+        net.minecraft.server.v1_7_R4.World world = ((CraftWorld) block1.getWorld()).getHandle();
         int maxHeight = block1.getWorld().getMaxHeight(), minY = lowestInteger(block1.getY(), block2.getY());
         if (minY > maxHeight) {
             return blocks;
@@ -96,7 +96,7 @@ public class BlockUtils {
      */
     public static void paste(Collection<me.paulbgd.blocks.api.block.Block> blocks, Block location, boolean air) {
         CraftWorld craftWorld = ((CraftWorld) location.getWorld());
-        net.minecraft.server.v1_7_R3.World world = ((CraftWorld) location.getWorld()).getHandle();
+        net.minecraft.server.v1_7_R4.World world = ((CraftWorld) location.getWorld()).getHandle();
         int x = location.getX(), y = location.getY(), z = location.getZ();
         for (me.paulbgd.blocks.api.block.Block block : blocks) {
             BlockPosition position = block.getPosition();
@@ -110,9 +110,10 @@ public class BlockUtils {
                 continue; // no need to do air.. again
             }
             try {
-                net.minecraft.server.v1_7_R3.Block id = CraftMagicNumbers.getBlock(data.getId());
+                net.minecraft.server.v1_7_R4.Block id = CraftMagicNumbers.getBlock(data.getId());
                 world.setTypeAndData(j, k, l, id, data.getBlockData(), 2); // 4 = no change
                 if (data instanceof ComplexBlockData) {
+                    System.out.println(((ComplexBlockData) data).getNBT());
                     NBTTagCompound nbtTagCompound = NBTUtils.newToOld(((ComplexBlockData) data).getNBT());
                     nbtTagCompound.setInt("x", j);
                     nbtTagCompound.setInt("y", k);
@@ -120,6 +121,7 @@ public class BlockUtils {
                     TileEntity tileEntity = world.getTileEntity(j, k, l);
                     tileEntity.a(nbtTagCompound);
                     world.setTileEntity(j, k, l, tileEntity);
+                    System.out.println("Tile entity set with data " + nbtTagCompound);
                 } else if (!(data instanceof SimpleBlockData)) {
                     throw new IllegalArgumentException(String.format(BlocksLanguage.INVALID_DATA_TYPE, data.getClass()));
                 }

@@ -26,10 +26,10 @@ package me.paulbgd.blocks.api.block.data;
 
 import java.util.HashMap;
 import me.paulbgd.blocks.utils.NBTUtils;
-import net.minecraft.server.v1_7_R3.NBTTagCompound;
-import net.minecraft.server.v1_7_R3.TileEntity;
+import net.minecraft.server.v1_7_R4.NBTTagCompound;
+import net.minecraft.server.v1_7_R4.TileEntity;
 import net.minidev.json.JSONObject;
-import org.bukkit.craftbukkit.v1_7_R3.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.v1_7_R4.util.CraftMagicNumbers;
 import org.jnbt.CompoundTag;
 import org.jnbt.Tag;
 
@@ -56,7 +56,7 @@ public class ComplexBlockData extends BlockData {
 
     /**
      * Creates a ComplexBlockData using a TileEntity.
-     * {@link net.minecraft.server.v1_7_R3.TileEntity}
+     * {@link net.minecraft.server.v1_7_R4.TileEntity}
      *
      * @param tileEntity the TileEntity
      * @param data       block data

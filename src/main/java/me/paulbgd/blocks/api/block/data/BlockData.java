@@ -25,10 +25,11 @@
 package me.paulbgd.blocks.api.block.data;
 
 import lombok.Data;
+import lombok.Setter;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import org.bukkit.block.BlockState;
-import org.bukkit.craftbukkit.v1_7_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_7_R4.CraftWorld;
 
 /**
  * Represents the data a block can contain.
@@ -39,8 +40,10 @@ import org.bukkit.craftbukkit.v1_7_R3.CraftWorld;
 @Data
 public abstract class BlockData {
 
-    protected final int id;
-    protected final short blockData;
+    @Setter
+    protected int id;
+    @Setter
+    protected short blockData;
 
     /**
      * Creates a simple BlockData instance using the block id and data

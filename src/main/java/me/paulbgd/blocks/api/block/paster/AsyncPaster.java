@@ -31,8 +31,8 @@ import java.util.Comparator;
 import java.util.List;
 import lombok.Data;
 import me.paulbgd.blocks.BlocksLanguage;
-import me.paulbgd.blocks.plugin.BlocksPlugin;
 import me.paulbgd.blocks.api.block.Blocks;
+import me.paulbgd.blocks.plugin.BlocksPlugin;
 import me.paulbgd.blocks.utils.BlockUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
@@ -49,6 +49,11 @@ public class AsyncPaster extends BukkitRunnable implements BlockPaster {
 
     protected long speed = 1l;
     protected int chunkSize = 1000;
+
+    public AsyncPaster(long speed) {
+        this.speed = speed;
+        this.runTaskTimer(BlocksPlugin.getPlugin(), speed, speed);
+    }
 
     public AsyncPaster() {
         this.runTaskTimer(BlocksPlugin.getPlugin(), speed, speed);
@@ -77,9 +82,14 @@ public class AsyncPaster extends BukkitRunnable implements BlockPaster {
         }
         QueueItem item = queue.remove(0);
         BlockUtils.paste(item.getBlocks(), item.getLocation(), item.air);
+        onPaste(item);
         if (item.getPosition() == item.totalSize && (!(item.getPaster() instanceof Player) || ((Player) item.getPaster()).isOnline())) {
             item.getPaster().sendMessage(ChatColor.GREEN + BlocksLanguage.PASTED);
         }
+    }
+
+    protected void onPaste(QueueItem queueItem) {
+
     }
 
     public void finish() {

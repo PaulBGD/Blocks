@@ -70,7 +70,7 @@ public class BlocksLanguage {
     public static String RESOURCE_COMMAND_INFO = "Loads a .blocks file from your resources onto your clipboard!";
 
     static {
-        languageFile = new File(BlocksPlugin.getPluginFolder(), "language.byml"); // we're so swag, let's add a "b"
+        languageFile = new File(BlocksPlugin.getPluginFolder(), "language.yml"); // we're so swag, let's add a "b"
         language = YamlConfiguration.loadConfiguration(languageFile);
 
         reload();

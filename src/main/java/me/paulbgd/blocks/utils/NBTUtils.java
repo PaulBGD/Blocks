@@ -34,26 +34,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.server.v1_7_R3.NBTBase;
-import net.minecraft.server.v1_7_R3.NBTCompressedStreamTools;
-import net.minecraft.server.v1_7_R3.NBTTagByte;
-import net.minecraft.server.v1_7_R3.NBTTagByteArray;
-import net.minecraft.server.v1_7_R3.NBTTagCompound;
-import net.minecraft.server.v1_7_R3.NBTTagDouble;
-import net.minecraft.server.v1_7_R3.NBTTagFloat;
-import net.minecraft.server.v1_7_R3.NBTTagInt;
-import net.minecraft.server.v1_7_R3.NBTTagIntArray;
-import net.minecraft.server.v1_7_R3.NBTTagList;
-import net.minecraft.server.v1_7_R3.NBTTagLong;
-import net.minecraft.server.v1_7_R3.NBTTagShort;
-import net.minecraft.server.v1_7_R3.NBTTagString;
-import net.minecraft.server.v1_7_R3.TileEntity;
-import net.minecraft.server.v1_7_R3.World;
+import net.minecraft.server.v1_7_R4.*;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.v1_7_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_7_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_7_R4.CraftWorld;
+import org.bukkit.craftbukkit.v1_7_R4.inventory.CraftItemStack;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jnbt.ByteArrayTag;
@@ -147,14 +133,14 @@ public class NBTUtils {
 
     // item specific
     public static JSONObject itemToJSON(ItemStack item) {
-        net.minecraft.server.v1_7_R3.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
+        net.minecraft.server.v1_7_R4.ItemStack nmsItem = CraftItemStack.asNMSCopy(item);
         NBTTagCompound nbt = nmsItem.save(new NBTTagCompound());
         return nbtToJSON(nbt);
     }
 
     public static ItemStack jsonToItem(JSONObject jsonObject) {
         NBTTagCompound nbt = jsonToNBT(jsonObject);
-        net.minecraft.server.v1_7_R3.ItemStack itemStack = net.minecraft.server.v1_7_R3.ItemStack.createStack(nbt);
+        net.minecraft.server.v1_7_R4.ItemStack itemStack = net.minecraft.server.v1_7_R4.ItemStack.createStack(nbt);
 
         return CraftItemStack.asBukkitCopy(itemStack);
     }
